@@ -16,6 +16,7 @@ import Background_island_probscore_statistics
 import HTSeq
 import bisect
 import collections
+import itertools
 import SICER_MS
 
 def main(argv):
@@ -91,11 +92,26 @@ def main(argv):
     bam_iterator = HTSeq.BAM_Reader(red_rem_bam_file_name)
 
     print "Partition the genome in windows... \n"
-    # make dictionary of reads and windows and count total reads
-    # read_dict: keys are chromosomes and values are a list of read positions
-    # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
-    read_dict, window_dict, total_reads = SICER_MS.make_dict_of_reads_and_windows(bam_iterator, genome, opt.fragment_size,
-                                                                         opt.window_size)
+
+    # evaluate first read in iterator to see if chip library is pair-ended or single-ended
+    paired_end_bool = itertools.islice(bam_iterator,1).next().paired_end 
+  	
+    print "paired_end_bool= %s  \n" % (paired_end_bool) 
+  	
+    if paired_end_bool:
+        # make dictionary of reads and windows and count total reads
+        # read_dict: keys are chromosomes and values are a list of read positions
+        # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
+        SICER_MS.paired_to_single_read(red_rem_bam_file_name)
+        paired_to_single_bed_file = red_rem_bam_file_name[:-4] + '_single' + '.bed'
+        bed_iterator = HTSeq.BED_Reader(paired_to_single_bed_file)
+        opt.fragment_size = 1
+        read_dict, window_dict, total_reads = SICER_MS.make_dict_of_reads_and_windows(bed_iterator, genome, opt.fragment_size, opt.window_size)
+    elif not paired_end_bool:
+        # make dictionary of reads and windows and count total reads
+        # read_dict: keys are chromosomes and values are a list of read positions
+        # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
+        read_dict, window_dict, total_reads = SICER_MS.make_dict_of_reads_and_windows(bam_iterator, genome, opt.fragment_size, opt.window_size)
 
     print "Count reads in windows... \n"
     # calculate the number of island reads in all the windows comprising the islands

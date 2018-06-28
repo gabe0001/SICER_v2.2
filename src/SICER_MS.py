@@ -62,7 +62,8 @@ def make_dict_of_reads_and_windows(iterator, genome_data, fragment_size, window_
 						
             read_dict[read.iv.chrom].append(read_pos)
             total_reads += 1
-
+            
+            #round down to nearest window starting position
             window_start = read_pos / window_size * window_size
             window_end = window_start + window_size
             # make sure window is on chromosome
@@ -91,31 +92,19 @@ def remove_duplicates_and_sort(l):
 
 # determine read position given the fragment size
 def get_read_pos(read, fragment_size, genome_data):
-		shift = int(round(fragment_size / 2))
-		if read.iv.strand == "+":
-				read_pos = read.iv.start_d + shift
-		elif read.iv.strand == "-":
-				read_pos = read.iv.start_d - shift
-		# make sure read_pos is located on chromosome
-		if read_pos < 0:
-				read_pos = 0
-		if read_pos >= genome_data[read.iv.chrom]:
-				read_pos = genome_data[read.iv.chrom] - 1
-		return read_pos
-
-# determine read position given the fragment size
-def get_read_pos_paired_end(read, genome_data):
-
+    shift = int(round(fragment_size / 2))
     if read.iv.strand == "+":
         read_pos = read.iv.start_d + shift
     elif read.iv.strand == "-":
         read_pos = read.iv.start_d - shift
-    # make sure read_pos is located on chromosome
+	# make sure read_pos is located on chromosome
     if read_pos < 0:
         read_pos = 0
     if read_pos >= genome_data[read.iv.chrom]:
         read_pos = genome_data[read.iv.chrom] - 1
     return read_pos
+
+
 
 ########################## End of Code for make_dict_of_reads_and_windows ##########################
 
@@ -548,6 +537,81 @@ def filter_raw_tags_by_islands(bed_iterator, island_array, filename, fragment_si
     return islandfiltered_reads_dict, islandfiltered_windows_dict, total_reads_in_islands
 ########################## End of Code for filter_raw_tags_by_islands ##########################
 ########################## End of BED SICER Code ##########################
+
+########################## BAM Paired to Single Read Code ##########################
+def write_to_outfile(outfile, GI, read):
+    outfile.write(str(GI.chrom)+"\t"+str(GI.start)+"\t"+str(GI.end)+"\t"+str(read.name.split('/')[0])+"\t"+str(read.score)+"\t"+str(GI.strand)+"\n")
+
+def paired_to_single_read(bamfile):
+
+    #Sort paired-end BAM file by name so that paired reads are adjacent
+    bam_reader = HTSeq.BAM_Reader(bamfile)
+    os.system('samtools sort -O BAM -n %s > %s' % (bamfile, bamfile[:-4]+"_sorted.bam"))
+
+    #BAM file is converted to BED format
+    os.system('bamToBed -i %s > %s' % (bamfile[:-4]+"_sorted.bam", bamfile[:-4]+"_sorted.bed"))
+
+    #BED iterator created to traverse BED file
+    bed_iterator = HTSeq.BED_Reader(bamfile[:-4]+"_sorted.bed")
+
+    outfile = open(bamfile[:-4]+"_single.bed", 'w')
+
+    #algorithmic logic -> combine paired reads into a single read
+    pair1 = None
+    pair2 = None
+    oddRead = None
+    new_start = 0
+    new_end = 0
+    pos = 0
+    new_strand = ''
+    singleRead_iv = None
+    line_count = 0
+    error_count = 0
+    finalcount = 0
+
+    for read in bed_iterator:
+        line_count =+ line_count + 1
+        if line_count%2 != 0:
+            oddRead = read.iv
+
+        elif line_count%2 == 0:
+            pair1 = oddRead
+            pair2 = read.iv
+            #print "Read 1 chr: " + str(pair1.chrom) + " and Read 2 chr: " + str(pair2.chrom)
+
+            if str(pair1.chrom) == str(pair2.chrom):
+                #determines start and end of single read
+                new_start = min([pair1.start, pair2.start])
+                new_end = max([pair1.end, pair2.end])
+
+                #position calculation
+                pos = (new_start + new_end) / 2
+                if pos%1 != 0:
+                    pos=pos-0.5
+
+                #decides proper strand for new single read (strand is that of leftmost read in pair)
+                if pair1.start < pair2.start:
+                    new_strand = pair1.strand
+                else:
+                    new_strand = pair2.strand
+
+                #creates new single read with length 1 bp
+                singleRead_iv = HTSeq.GenomicInterval(pair1.chrom, pos, pos+1, new_strand)
+
+                #writes read to output BED file
+                write_to_outfile(outfile, singleRead_iv, read)
+                finalcount = finalcount + 1
+            else:
+                #print "Error: paired reads not on same chromosome."
+                error_count = error_count + 1
+
+
+
+    #print "pairedRead to singleRead conversion is done running.\nThere were " + str(error_count) + " pairs on different chromosomes"
+    #print "Reads written to outfile: " + str(finalcount)
+########################## End BAM Paired to Single Read Code ##########################
+
+
 
 ########################## BAM SICER Code ##########################
 ########################## Code for remove_redundant_reads_bam ##########################

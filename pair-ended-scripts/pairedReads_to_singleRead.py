@@ -17,6 +17,7 @@ def write_to_outfile(outfile, GI):
 def main(argv):
     parser = OptionParser()
     parser.add_option("-b", "--bam_file", action="store", type="string", dest="bamfile", help="paired-end bam file to be condensed into a single-ended bam file")
+    print argv
     (opt, args) = parser.parse_args(argv)
 
     #Sortng inputted paired-end BAM file by name, so paired reads are adjacent
@@ -52,7 +53,7 @@ def main(argv):
         elif line_count%2 == 0:
             pair1 = oddRead
             pair2 = read.iv
-            print "Read 1 chr: " + str(pair1.chrom) + " and Read 2 chr: " + str(pair2.chrom)
+            #print "Read 1 chr: " + str(pair1.chrom) + " and Read 2 chr: " + str(pair2.chrom)
 
             if str(pair1.chrom) == str(pair2.chrom):
                 #determines start and end of single read
@@ -77,13 +78,13 @@ def main(argv):
                 write_to_outfile(outfile, singleRead_iv)
                 finalcount = finalcount + 1
             else:
-                print "Error: paired reads not on same chromosome."
+                #print "Error: paired reads not on same chromosome."
                 error_count = error_count + 1
 
 
 
-    print "pairedRead to singleRead conversion is done running.\nThere were " + str(error_count) + " pairs on different chromosomes"
-    print "Reads written to outfile: " + str(finalcount)
+    #print "pairedRead to singleRead conversion is done running.\nThere were " + str(error_count) + " pairs on different chromosomes"
+    #print "Reads written to outfile: " + str(finalcount)
 
 if __name__ == "__main__":
         main(sys.argv)
