@@ -56,7 +56,6 @@ def main(argv):
     # create string names for files
     file_name = opt.file_name[:-4]
     control_file_name = opt.control_file_name[:-4]
-
     bam_file_name = opt.input_dir + "/" + opt.file_name
     bam_control_file_name = opt.input_dir + "/" + opt.control_file_name
     
