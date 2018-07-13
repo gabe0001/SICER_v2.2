@@ -56,11 +56,15 @@ def main(argv):
     # create string names for files
     file_name = opt.file_name[:-4]
     control_file_name = opt.control_file_name[:-4]
-    sorted_bam_file_name = file_name + "_sorted.bam"
-    red_rem_bam_file_name = file_name + "-" + str(opt.redundancy) + "-removed.bam"
-    island_bed_file_name = file_name + "-W" + str(opt.window_size) + "-G" + str(opt.gap_size) + "-FDR" + str(opt.FDR) + "-island.bed"
-    sorted_control_file_name = control_file_name + "_sorted.bam"
-    red_rem_control_file_name = control_file_name + "-" + str(opt.redundancy) + "-removed.bam"
+
+    bam_file_name = opt.input_dir + "/" + opt.file_name
+    bam_control_file_name = opt.input_dir + "/" + opt.control_file_name
+    
+    sorted_bam_file_name = opt.output_dir + "/" + file_name + "_sorted.bam"
+    red_rem_bam_file_name = opt.output_dir + "/" + file_name + "-" + str(opt.redundancy) + "-removed.bam"
+    island_bed_file_name = opt.output_dir + "/" + file_name + "-W" + str(opt.window_size) + "-G" + str(opt.gap_size) + "-FDR" + str(opt.FDR) + "-island.bed"
+    sorted_control_file_name = opt.output_dir + "/" + control_file_name + "_sorted.bam"
+    red_rem_control_file_name = opt.output_dir + "/" + control_file_name + "-" + str(opt.redundancy) + "-removed.bam"
     # This file stores the sample summary graph in bedgraph format
     normalized_bedgraph_file_name = opt.output_dir + "/" + file_name + "-W" + str(opt.window_size) + "-normalized.bedgraph"
     # This file stores the control summary graph in bedgraph format
@@ -94,10 +98,10 @@ def main(argv):
 
     # sort bam file by chromosome then coordinate using samtools
     print "\nSorting BAM file..."
-    os.system('samtools sort -O BAM %s > %s' % (opt.file_name, sorted_bam_file_name))
+    os.system('samtools sort -O BAM %s > %s' % (bam_file_name, sorted_bam_file_name))
     # sort control bam file by chromosome then coordinate using samtools
     print "Sorting control BAM file..."
-    os.system('samtools sort -O BAM %s > %s' % (opt.control_file_name, sorted_control_file_name))
+    os.system('samtools sort -O BAM %s > %s' % (bam_control_file_name, sorted_control_file_name))
 
 
     # remove redundant reads in sorted BAM file and count number of total reads and number of retained reads
@@ -124,7 +128,7 @@ def main(argv):
         # read_dict: keys are chromosomes and values are a list of read positions
         # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
         SICER_MS.paired_to_single_read(red_rem_bam_file_name)
-        paired_to_single_bed_file = red_rem_bam_file_name[:-4] + '_single' + '.bam'
+        paired_to_single_bed_file = red_rem_bam_file_name[:-4] + '_single' + '.bed'
         bed_iterator = HTSeq.BED_Reader(paired_to_single_bed_file)
         opt.fragment_size = 1
         read_dict, window_dict, total_reads = SICER_MS.make_dict_of_reads_and_windows(bed_iterator, genome, opt.fragment_size,

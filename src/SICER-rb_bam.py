@@ -96,7 +96,7 @@ def main(argv):
     # evaluate first read in iterator to see if chip library is pair-ended or single-ended
     paired_end_bool = itertools.islice(bam_iterator,1).next().paired_end 
   	
-    print "paired_end_bool= %s  \n" % (paired_end_bool) 
+    #print "paired_end_bool= %s  \n" % (paired_end_bool) 
   	
     if paired_end_bool:
         # make dictionary of reads and windows and count total reads
