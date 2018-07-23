@@ -1,4 +1,4 @@
-# SICER_MS
+#SICER_MS
 
 # Version: 2.2
 # Changes include modularization of essentials functions in SICER_MS script
@@ -7,6 +7,7 @@ import re, os, sys, shutil
 from math import *
 from string import *
 from optparse import OptionParser
+import itertools
 import operator
 import time
 import Background_island_probscore_statistics
@@ -539,9 +540,12 @@ def filter_raw_tags_by_islands(bed_iterator, island_array, filename, fragment_si
 ########################## End of BED SICER Code ##########################
 
 ########################## BAM Paired to Single Read Code ##########################
-def write_to_outfile(outfile, GI, read):
-    outfile.write(str(GI.chrom)+"\t"+str(GI.start)+"\t"+str(GI.end)+"\t"+str(read.name.split('/')[0])+"\t"+str(read.score)+"\t"+str(GI.strand)+"\n")
 
+def write_to_outfile(outfile, GI, SAM_algn):
+    outfile.write(str(GI.chrom)+"\t"+str(GI.start)+"\t"+str(GI.end)+"\t"+str(SAM_algn.read.name.split('/')[0])+"\t"+str(SAM_algn.aQual)+"\t"+str(GI.strand)+"\n")
+
+
+    
 def paired_to_single_read(bamfile):
 
     #Sort paired-end BAM file by name so that paired reads are adjacent
@@ -552,14 +556,14 @@ def paired_to_single_read(bamfile):
     os.system('bamToBed -i %s > %s' % (bamfile[:-4]+"_sorted.bam", bamfile[:-4]+"_sorted.bed"))
 
     #BED iterator created to traverse BED file
-    bed_iterator = HTSeq.BED_Reader(bamfile[:-4]+"_sorted.bed")
+    bam_iterator = HTSeq.BAM_Reader(bamfile[:-4]+"_sorted.bam")
 
     outfile = open(bamfile[:-4]+"_single.bed", 'w')
 
-    #algorithmic logic -> combine paired reads into a single read
-    pair1 = None
-    pair2 = None
-    oddRead = None
+
+    mate1 = list(itertools.islice(bam_iterator,2))[0]
+    mate2 = list(itertools.islice(bam_iterator,2))[1]
+
     new_start = 0
     new_end = 0
     pos = 0
@@ -569,42 +573,64 @@ def paired_to_single_read(bamfile):
     error_count = 0
     finalcount = 0
 
-    for read in bed_iterator:
-        line_count =+ line_count + 1
-        if line_count%2 != 0:
-            oddRead = read.iv
+    for read in bam_iterator:
+        line_count += 1
+        reads_are_mates = False
+        if not read.proper_pair:
+            error_count += 1
+            continue
+            
+        if read.pe_which == 'first':
+            mate1 = read
+            mate1_name = mate1.read.name.split('/')[0]
+            mate2_name = mate2.read.name.split('/')[0]
+            if mate1_name == mate2_name:
+                reads_are_mates = True
+            else:
+                continue
+            
+        if read.pe_which == 'second':
+            mate2 = read
+            mate1_name = mate1.read.name.split('/')[0]
+            mate2_name = mate2.read.name.split('/')[0]
+            if mate1_name == mate2_name:
+                reads_are_mates = True
+            else:
+                continue
+        if reads_are_mates:
 
-        elif line_count%2 == 0:
-            pair1 = oddRead
-            pair2 = read.iv
-            #print "Read 1 chr: " + str(pair1.chrom) + " and Read 2 chr: " + str(pair2.chrom)
-
-            if str(pair1.chrom) == str(pair2.chrom):
+            mate1_name = mate1.read.name.split('/')[0]
+            mate2_name = mate2.read.name.split('/')[0]
+            
+            if mate1_name == mate2_name:
                 #determines start and end of single read
-                new_start = min([pair1.start, pair2.start])
-                new_end = max([pair1.end, pair2.end])
-
+                new_start = min([mate1.iv.start, mate2.iv.start])
+                new_end = max([mate1.iv.end, mate2.iv.end])
+                if mate1.iv.start ==mate2.iv.start:
+                    error_count += 1
+                    continue
+                    
                 #position calculation
                 pos = (new_start + new_end) / 2
                 if pos%1 != 0:
                     pos=pos-0.5
 
                 #decides proper strand for new single read (strand is that of leftmost read in pair)
-                if pair1.start < pair2.start:
-                    new_strand = pair1.strand
+                if mate1.iv.start < mate2.iv.start:
+                    new_strand = mate1.iv.strand
                 else:
-                    new_strand = pair2.strand
+                    new_strand = mate2.iv.strand
 
                 #creates new single read with length 1 bp
-                singleRead_iv = HTSeq.GenomicInterval(pair1.chrom, pos, pos+1, new_strand)
+                singleRead_iv = HTSeq.GenomicInterval(mate1.iv.chrom, pos, pos+1, new_strand)
 
                 #writes read to output BED file
                 write_to_outfile(outfile, singleRead_iv, read)
-                finalcount = finalcount + 1
+                finalcount += 1
             else:
-                #print "Error: paired reads not on same chromosome."
-                error_count = error_count + 1
-
+                print "Error: not proper mates, line_number = %s \n read1: %s \n read2: %s" % (line_count, mate1, mate2)
+                continue
+           
 
 
     #print "pairedRead to singleRead conversion is done running.\nThere were " + str(error_count) + " pairs on different chromosomes"
