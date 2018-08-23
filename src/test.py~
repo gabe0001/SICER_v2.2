@@ -1,0 +1,9 @@
+import SICER_MS
+import HTSeq 
+
+genome_data = SICER_MS.get_genome_data('../genomes/hg19')
+window_size = 200 
+fragment_size = 150
+scaling_factor = 1.
+iterator = HTSeq.BAM_Reader('input/sample_small_sorted.bam')
+a,b,tot_reads = SICER_MS.get_window_counts(iterator, genome_data, window_size, fragment_size, scaling_factor)
