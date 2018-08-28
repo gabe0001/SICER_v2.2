@@ -3,9 +3,9 @@ New modules in SICER_v2.3:
 
 
 ### The following two functions replace the two steps of using  make_dict_of_reads_and_windows 
-### followed by get_window_counts_and_normalize, since that procedure cannot easily incorporate pile-up counting.
+### followed by get_window_counts_and_normalize. EXPLANATION OF OLD CODE, two step process. since that procedure cannot easily incorporate pile-up counting.
 
-
+# line 500 of SICER_MS.py
 get_window_counts
 
     input: iterator, genome_data, window_size, fragment_size, scaling_factor
