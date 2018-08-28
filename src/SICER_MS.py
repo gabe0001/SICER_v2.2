@@ -160,7 +160,8 @@ def get_read_count_in_window(chrom, window_start, window_size, tags_dict):
 ########################## End of Code for get_window_counts_and_normalize ##########################
 
 ########################## Begin Refactor branch code ###############################################
-
+# alternative function to replace make_dicts_of_reads_and_windows
+# window counts are stored in dict of dicts read_counts[chrom][window_start]
 def get_window_counts(iterator, genome_data, window_size, fragment_size, scaling_factor):
     # dictionary to store read counts
     read_counts = {}
@@ -224,36 +225,38 @@ def get_window_counts_pe(iterator, genome_data, window_size, scaling_factor):
     normalized_window_array = HTSeq.GenomicArray(genome_data, stranded=False, typecode='d')
     
     proper_pairs = 0
-    singletons = 0
+    #singletons = 0
     improper_pairs = 0
-    diff_chrom = 0
-    total_M = 0
+    #diff_chrom = 0
+    #total_M = 0
     
+    # paired end iterator 
     pe_iterator = HTSeq.pair_SAM_alignments(iterator)
 
     for mate1, mate2 in pe_iterator:
+        # try statement to catch when mate = None, which yields an error when mate.proper_pair is evaluated 
         try:
-            if (mate1.iv.chrom != mate2.iv.chrom):
-                diff_chrom +=1
+            #if (mate1.iv.chrom != mate2.iv.chrom):
+            #    diff_chrom +=1
             if not mate1.proper_pair:
                 if mate2 == None:
-                    singletons += 1
+                    #singletons += 1
                     continue
                 else:
-                    improper_pairs += 1
+                    #improper_pairs += 1
                     continue
             if not mate2.proper_pair:
                 if mate1 == None:
-                    singletons += 1
+                    #singletons += 1
                     continue
                 else:
-                    improper_pairs += 1
+                    #improper_pairs += 1
                     continue
-            if mate1.iv.chrom == 'chrM':
-                total_M += 1
+            if mate1.iv.chrom not in genome_data:
+                #total_M += 1
                 continue
-            if mate2.iv.chrom == 'chrM':
-                total_M +=1
+            if mate2.iv.chrom not in genome_data:
+                #total_M +=1
                 continue
             if mate1.iv.start < 0:
                 improper_pairs += 1
@@ -289,7 +292,7 @@ def get_window_counts_pe(iterator, genome_data, window_size, scaling_factor):
                 read_counts[mate1.iv.chrom][window_start] +=1
         except(AttributeError):
             #print #'A mate is missing from the current pair or read is orphan!'
-            singletons += 1
+            #singletons += 1
             #print 'orphan count = ' + str(total_orphans)
             continue
             
@@ -312,10 +315,10 @@ def get_window_counts_pe(iterator, genome_data, window_size, scaling_factor):
              
                     
     print 'proper pairs: ' + str(proper_pairs)
-    print 'singletons: ' + str(singletons)
+    #print 'singletons: ' + str(singletons)
     print 'improper pairs: ' + str(improper_pairs)
-    print 'mate in diff chrom: ' + str(diff_chrom)
-    print 'pairs in chrM: ' + str(total_M)
+    #print 'mate in diff chrom: ' + str(diff_chrom)
+    #print 'pairs in chrM: ' + str(total_M)
     print ''  
     
             

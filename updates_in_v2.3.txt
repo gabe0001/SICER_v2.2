@@ -1,0 +1,30 @@
+New modules in SICER_v2.3:
+
+
+
+### The following two functions replace the two steps of using  make_dict_of_reads_and_windows 
+### followed by get_window_counts_and_normalize, since that procedure cannot easily incorporate pile-up counting.
+
+
+get_window_counts
+
+    input: iterator, genome_data, window_size, fragment_size, scaling_factor
+
+    output: read_counts, window_counts_dict, normalized_window_array, total_reads
+    
+    
+
+get_window_counts_pe
+
+    input: iterator, genome_data, window_size, fragment_size, scaling_factor
+
+    output: read_counts, window_counts_dict, normalized_window_array, total_reads
+    
+    
+#The dict of dicts read_counts[chrom][window_start] contains all read counts by window and chromosome. 
+#The dictionary window_counts_dict contains the same information, but downstream functions in the SICER pipeline () expect the format that window_counts_dict is in so it is currently retained. normalized_window_array also contains the same read count information but in a format suitable for a bedgraph file. 
+
+
+
+### Utility functions
+    
