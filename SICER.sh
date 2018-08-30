@@ -11,7 +11,7 @@
 # ##### Please replace PATHTO with your own directory ###### #
 ##############################################################
 
-PATHTO=~/SICER2.3
+PATHTO=~/SICER_v2.3
 SICER=$PATHTO/SICER
 
 if [ $# -lt 11 ]; then

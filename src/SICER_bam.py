@@ -104,7 +104,7 @@ def main(argv):
 
 
     # remove redundant reads in sorted BAM file and count number of total reads and number of retained reads
-    print "\nPreprocess the sorted BAM file to remove redundancy with threshold " + str(opt.redundancy) + "..."
+    #print "\nPreprocess the sorted BAM file to remove redundancy with threshold " + str(opt.redundancy) + "..."
     #os.system('samtools rmdup %s %s' % (sorted_bam_file_name,red_rem_bam_file_name))
     #total, retained = SICER_MS.remove_redundant_reads_bam(sorted_bam_file_name, red_rem_bam_file_name, opt.redundancy, genome)
     #print "Total reads: " + str(total) + "\nTotal retained reads: " + str(retained)
@@ -116,8 +116,8 @@ def main(argv):
     #print "Control file total reads: " + str(control_total) + "\nControl file total retained reads: " + str(control_retained) + "\n \n"
 
     # create HTSeq BAM readers that can iterate through all of the reads
-    bam_iterator = HTSeq.BAM_Reader(bam_file_name)
-    control_bam_iterator = HTSeq.BAM_Reader(red_rem_control_file_name)
+    bam_iterator = HTSeq.BAM_Reader(sorted_bam_file_name)
+    control_bam_iterator = HTSeq.BAM_Reader(sorted_control_file_name)
 
     print "Partition the genome in windows... \n"
 
@@ -125,33 +125,44 @@ def main(argv):
     paired_end_bool = itertools.islice(bam_iterator,1).next().paired_end
     
     if paired_end_bool:
+        # do paired.bam to frag.bed conversion, then use midpoint of fragments as coords for getting window counts etc. 
         # make dictionary of reads and windows and count total reads
         # read_dict: keys are chromosomes and values are a list of read positions
-        # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
-        #SICER_MS.paired_to_single_read(red_rem_bam_file_name)
-        #paired_to_single_bed_file = red_rem_bam_file_name[:-4] + '_single' + '.bed'
-        #bed_iterator = HTSeq.BED_Reader(paired_to_single_bed_file)
-        #opt.fragment_size = 1
-        read_counts, window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts_pe(bam_iterator, genome, opt.window_size, 1000000)
+        print "\nCoverting paired-end ChIP library to fragment BED..."
+        SICER_MS.paired_to_frag(sorted_bam_file_name)
+        frag_file = sorted_bam_file_name[:-4] + "_frag.bed"
+        frag_file_rem  = frag_file[:-4] + "_rem.bed"
+        print "\nPreprocess the sorted fragment BED file to remove redundancy with threshold " + str(opt.redundancy) + "..."
+        total, retained = SICER_MS.remove_redundant_reads_bed(frag_file, frag_file_rem, opt.redundancy, genome)
+        print "Total reads: " + str(total) + "\nTotal retained reads: " + str(retained)
+        
+        frag_iterator = HTSeq.BED_Reader(frag_file_rem)
+        
+        read_counts, window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts_frag(frag_iterator, genome, opt.window_size, 1000000)
         
     elif not paired_end_bool:
         # make dictionary of reads and windows and count total reads
         # read_dict: keys are chromosomes and values are a list of read positions
         # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
-        read_counts, window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts_pe(bam_iterator, genome, opt.window_size, opt.fragment_size, 1000000)
+        read_counts, window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts(bam_iterator, genome, opt.window_size, opt.fragment_size, 1000000)
                                                                              
     # evaluate first read in iterator to see if chip library is pair-ended or single-ended
     control_paired_end_bool = itertools.islice(control_bam_iterator,1).next().paired_end
     
     if control_paired_end_bool:
+        # do paired.bam to frag.bed conversion, then use midpoint of fragments as coords for getting window counts etc. 
         # make dictionary of reads and windows and count total reads
         # read_dict: keys are chromosomes and values are a list of read positions
-        # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
-        #SICER_MS.paired_to_single_read(red_rem_control_file_name)
-        #paired_to_single_bed_file = red_rem_control_file_name[:-4] + '_single' + '.bed'
-        #bed_iterator = HTSeq.BED_Reader(paired_to_single_bed_file)
-        #opt.fragment_size = 1
-        control_read_counts, control_window_counts_dict, control_normalized_window_array, control_total_reads = SICER_MS.get_window_counts_pe(control_bam_iterator, genome, opt.window_size, 1000000)
+        print "\nCoverting paired-end control library to fragment BED..."
+        SICER_MS.paired_to_frag(sorted_control_file_name)
+        control_frag_file = sorted_control_file_name[:-4] + "_frag.bed"
+        control_frag_file_rem  = frag_file[:-4] + "_rem.bed"
+        print "\nPreprocess the sorted BAM file to remove redundancy with threshold " + str(opt.redundancy) + "..."
+        control_total, control_retained = SICER_MS.remove_redundant_reads_bed(control_frag_file, control_frag_file_rem, opt.redundancy, genome)
+        print "Control file total reads: " + str(control_total) + "\nControl file total retained reads: " + str(control_retained) + "\n \n" 
+        control_frag_iterator = HTSeq.BED_Reader(control_frag_file_rem)
+        
+        control_read_counts, control_window_counts_dict, control_normalized_window_array, control_total_reads = SICER_MS.get_window_counts_frag(control_frag_iterator, genome, opt.window_size, 1000000)
         
     elif not paired_end_bool:
         # make dictionary of reads and windows and count total reads
@@ -161,7 +172,7 @@ def main(argv):
 
 
 
-    print "Count reads in windows... \n"
+    print "Count reads/frags in windows... \n"
     # get the read count and normalized read count of all windows in the bed file
     # create window counts dictionary window_counts_dict
     # add the window's score to the genomic array normalized_window_array
@@ -194,8 +205,8 @@ def main(argv):
     # both island dictionaries
     islands_list, total_chip_reads_in_islands, total_control_reads_in_islands = SICER_MS.count_reads_in_islands_ref(islands_list, opt.window_size, read_counts, control_read_counts)
 
-    print "Total chip reads in islands: " + str(total_chip_reads_in_islands)
-    print "Total control reads in islands: " + str(total_control_reads_in_islands)
+    print "Total chip reads/frags in islands: " + str(total_chip_reads_in_islands)
+    print "Total control reads/frags in islands: " + str(total_control_reads_in_islands)
 
     # calculate the p-value and fold change (number of chip reads versus number of expected chip reads) for all islands
     # calculate alpha value for all islands

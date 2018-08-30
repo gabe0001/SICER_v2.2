@@ -234,7 +234,7 @@ def get_window_counts_pe(iterator, genome_data, window_size, scaling_factor):
     pe_iterator = HTSeq.pair_SAM_alignments(iterator)
 
     for mate1, mate2 in pe_iterator:
-        # try statement to catch when mate = None, which yields an error when mate.proper_pair is evaluated 
+        # try statement for mate = None, which yields an error when mate.proper_pair is evaluated 
         try:
             #if (mate1.iv.chrom != mate2.iv.chrom):
             #    diff_chrom +=1
@@ -323,6 +323,53 @@ def get_window_counts_pe(iterator, genome_data, window_size, scaling_factor):
     
             
     return read_counts, window_counts_dict, normalized_window_array, proper_pairs
+    
+    
+def get_window_counts_frag(iterator, genome_data, window_size, scaling_factor):
+    read_counts = {}
+    # dictionary to store read count in each window
+    window_counts_dict = {}
+    
+    for chrom in genome_data:
+        read_counts[chrom] = defaultdict(int)
+        window_counts_dict[chrom] = []
+    
+
+    # HTSeq genomic array to store normalized score for each window (used to generate bedgraph file)
+    normalized_window_array = HTSeq.GenomicArray(genome_data, stranded=False, typecode='d')
+    
+    total_reads = 0
+    
+    for frag in iterator:
+        if frag.iv.chrom in genome_data:
+            if frag.iv.start < 0:
+                continue
+            if frag.iv.start > genome_data[frag.iv.chrom]:
+                continue
+            
+            total_reads += 1 
+            # take midpoint of start and end coords of fragment    
+            read_pos = int((frag.iv.end + frag.iv.start)/2.)
+            #round down to nearest window starting position
+            window_start = int(read_pos / window_size * window_size)
+            
+            read_counts[frag.iv.chrom][window_start] +=1
+            
+    for chrom in genome_data:
+            for window_start in read_counts[chrom]:
+                read_count = read_counts[chrom][window_start]
+                window_counts_dict[chrom].append([window_start, read_count, 0])
+                
+                normalized_count = float(read_count) * float(scaling_factor) / float(total_reads)
+                window_end = window_start + window_size 
+                window = HTSeq.GenomicInterval(chrom, window_start, window_end)
+                
+                normalized_window_array[window] = normalized_count
+            window_counts_dict[chrom].sort()
+            
+            
+            
+    return read_counts, window_counts_dict, normalized_window_array, total_reads
 
 
 
@@ -821,7 +868,7 @@ def paired_to_frag(bamfile):
     #BED iterator created to traverse BED file
     #bam_iterator = HTSeq.BAM_Reader(bamfile[:-4]+"_sorted.bam")
 
-    outfile = open(bamfile[:-4]+"_single.bed", 'w')
+    outfile = open(bamfile[:-4]+"_frag.bed", 'w')
 
     frag_start = 0
     frag_end = 0
