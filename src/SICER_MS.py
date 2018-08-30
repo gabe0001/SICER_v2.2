@@ -252,12 +252,7 @@ def get_window_counts_pe(iterator, genome_data, window_size, scaling_factor):
                 else:
                     #improper_pairs += 1
                     continue
-            if mate1.iv.chrom not in genome_data:
-                #total_M += 1
-                continue
-            if mate2.iv.chrom not in genome_data:
-                #total_M +=1
-                continue
+
             if mate1.iv.start < 0:
                 improper_pairs += 1
                 continue
@@ -371,6 +366,36 @@ def get_window_counts_frag(iterator, genome_data, window_size, scaling_factor):
             
     return read_counts, window_counts_dict, normalized_window_array, total_reads
 
+
+# calculates number of windows that a fragment spans, then loops over each window and counts the fraction of the frag in that window. 
+def pile_up_count(read_counts, frag, window_size):
+
+    frag_start = frag.iv.start
+    frag_end = frag.iv.end
+    frag_size = frag_end - frag_start
+    first_window_start = int(frag_start/window_size * window_size)
+    first_window_end = first_window_start + window_size
+    last_window_start = int(frag_end/window_size * window_size)
+    last_window_end = last_window_start + window_size
+    
+    windows_spanned = int((last_window_end - first_window_start)/window_size)
+    frag_chrom = frag.iv.chrom
+
+    for i in range(windows_spanned):
+        window_start = first_window_start + i*window_size
+        window_end = first_window_end + i*window_size
+        #window_iv = HTSeq.GenomicInterval(frag_chrom, window_start, window_end)
+        
+        if i==0:
+            count_frac = float(window_end - frag_start)/float(frag_size)
+            read_counts[frag_chrom][window_start] += count_frac
+        elif i==(windows_spanned - 1):
+            count_frac = float(frag_end - last_window_start)/float(frag_size)
+            read_counts[frag_chrom][window_start] += count_frac
+        #elif (i>0) and (i<windows_spanned):
+        else:
+            count_frac = float(window_size)/float(frag_size)
+            read_counts[frag_chrom][window_start] += count_frac
 
 
 ######################### End of Refactor branch code ################################################
@@ -855,7 +880,7 @@ def paired_to_single_read(bamfile):
     #print "pairedRead to singleRead conversion is done running.\nThere were " + str(error_count) + " pairs on different chromosomes"
     #print "Reads written to outfile: " + str(finalcount)
 ########################## End BAM Paired to Frag Code ##########################
-
+# function expecting a SORTED paired-end bamfile, which it will convert to a BED file with each line a fragment  
 def paired_to_frag(bamfile):
 
     #Sort paired-end BAM file by name so that paired reads are adjacent
@@ -877,29 +902,37 @@ def paired_to_frag(bamfile):
     pe_iterator = HTSeq.pair_SAM_alignments(bam_reader)
 
     for mate1, mate2 in pe_iterator:
+        # try statement for mate = None, which yields an error when mate.proper_pair is evaluated 
         try:
             if not mate1.proper_pair:
                 if mate2 == None:
+                    #singletons += 1
                     continue
                 else:
+                    #improper_pairs += 1
                     continue
             if not mate2.proper_pair:
                 if mate1 == None:
+                    #singletons += 1
                     continue
                 else:
+                    #improper_pairs += 1
                     continue
-            #if mate1.iv.chrom == 'chrM':
-            #    continue
-            #if mate2.iv.chrom == 'chrM':
-            #    continue
-            #if mate1.iv.start < 0:
-            #    continue
-            #if mate1.iv.end > genome_data[mate1.iv.chrom]:
-            #    continue
-            #if mate2.iv.start < 0:
-            #    continue
-            #if mate2.iv.end > genome_data[mate2.iv.chrom]:
-            #    continue
+            if (mate1.iv.chrom not in genome):
+                continue 
+            
+            if mate1.iv.start < 0:
+                #improper_pairs += 1
+                continue
+            if mate1.iv.end > genome[mate1.iv.chrom]:
+                #improper_pairs += 1
+                continue
+            if mate2.iv.start < 0:
+                #improper_pairs += 1
+                continue
+            if mate2.iv.end > genome[mate2.iv.chrom]:
+                #improper_pairs += 1
+                continue
 
             elif (mate1.iv.chrom == mate2.iv.chrom) :
                
