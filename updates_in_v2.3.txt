@@ -1,11 +1,33 @@
+Branches of SICER_v2.3 repository:
+
+master: SICER_v2.1 + paired end scripts
+
+pair-end: SICER_bam.py takes paired-end BAM file and makes intermediate BED file with start = midpoint (midpoint of fragment), end = midpoint+1. SICER then proceeds as normal. 
+
+pair_to_frag: SICER_bam.py takes paired-end BAM file and makes intermediate BED file with start = fragment_start, end = fragment_end. SICER then proceeds as normal.
+
+refactor 
+
+
+
 New modules in SICER_v2.3:
 
+## paired to frag module takes paired end file and outputs a fragment bedfile has start and end coordinates 
+## of a fragment according to minimum start and maximum end position of two mates.
+
+paired_to_frag.py
+
+## this module or the paired_to_frag function can be used for processing paired-end ChIP libraries.
+
+
+
+New functions in SICER_v2.3:
 
 
 ### The following two functions replace the two steps of using  make_dict_of_reads_and_windows 
-### followed by get_window_counts_and_normalize. EXPLANATION OF OLD CODE, two step process. since that procedure cannot easily incorporate pile-up counting.
+### followed by get_window_counts_and_normalize, since that procedure cannot easily incorporate pile-up counting.
 
-# line 500 of SICER_MS.py
+# SICER_MS.py, line 165
 get_window_counts
 
     input: iterator, genome_data, window_size, fragment_size, scaling_factor
@@ -13,18 +35,60 @@ get_window_counts
     output: read_counts, window_counts_dict, normalized_window_array, total_reads
     
     
-
+#SICER_MS.py, line 212
 get_window_counts_pe
+
+    input: iterator, genome_data, window_size, scaling_factor
+
+    output: read_counts, window_counts_dict, normalized_window_array, total_reads
+    
+## the following function is used in the pair_to_frag branch for paired end bam files, it expects a bed file with 
+## fragment start and end coordinates.
+
+#SICER_MS.py, line 323
+get_window_counts_frag
 
     input: iterator, genome_data, window_size, fragment_size, scaling_factor
 
     output: read_counts, window_counts_dict, normalized_window_array, total_reads
     
     
-#The dict of dicts read_counts[chrom][window_start] contains all read counts by window and chromosome. 
-#The dictionary window_counts_dict contains the same information, but downstream functions in the SICER pipeline () expect the format that window_counts_dict is in so it is currently retained. normalized_window_array also contains the same read count information but in a format suitable for a bedgraph file. 
+## The dict of dicts read_counts[chrom][window_start] contains all read counts by window and chromosome. 
+## The dictionary window_counts_dict contains the same information, but downstream functions in the SICER pipeline () expect the format that window_counts_dict is in so it is currently retained. normalized_window_array also contains the same read count information but in a format suitable for a bedgraph file. 
 
 
 
-### Utility functions
+##### Utility functions #####
+
+## paired end bamfile to fragment bedfile
+
+#SICER_MS.py, line 884
+paired_to_frag
+
+    input: bamfile
+    output: bedfile
+    
+## fragment bedfile has start and end coordinates of a fragment according to minimum start and maximum end 
+## position of two mates.
+
+
+##  Pile-up counting function, takes fragment and counts the fractional contribution to each window that it is in.
+
+#SICER_MS.py, line 371
+pile_up_count
+
+    input: read_counts, frag, window_size
+
+    output: None, modifies read_counts dictionary 
+    
+    
+## Pair to single read utility
+
+#SICER_MS.py, line 793
+paired_to_single_read
+
+    input: bamfile
+    output: bedfile
+    
+## the output bedfile is the midpoint coordinate of two mates.
     

@@ -84,21 +84,22 @@ def main(argv):
     # create HTSeq bed reader that can iterate through all of the reads
     bed_iterator = HTSeq.BED_Reader(red_rem_bed_file_name)
 
-    print "Partition the genome in windows... \n"
+    #print "Partition the genome in windows... \n"
     # make dictionary of reads and windows and count total reads
     # read_dict: keys are chromosomes and values are a list of read positions
     # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
-    read_dict, window_dict, total_reads = SICER_MS.make_dict_of_reads_and_windows(bed_iterator, genome, opt.fragment_size,
-                                                                         opt.window_size)
+    #read_dict, window_dict, total_reads = SICER_MS.make_dict_of_reads_and_windows(bed_iterator, genome, opt.fragment_size,opt.window_size)
 
     print "Count reads in windows... \n"
     # calculate the number of island reads in all the windows comprising the islands
     # calculate normalized read count for each window
     # add the window's normalized read count to a genomic array (island_normalized_window_array)
     # the island_normalized_window_array will be used to write a bedgraph file
-    window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts_and_normalize(window_dict, read_dict, genome,
-                                                                                  1000000, total_reads, opt.window_size)
+    #window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts_and_normalize(window_dict,read_dict, genome, 1000000, total_reads, opt.window_size)
     # write bedgraph file of normalized islands
+    read_counts, window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts(bed_iterator, genome, opt.window_size, opt.fragment_size, 1000000)
+    
+    
     normalized_window_array.write_bedgraph_file(normalized_bedgraph_file_name)
 
     print "Find candidate islands exhibiting clustering... \n"

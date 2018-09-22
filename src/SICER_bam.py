@@ -138,7 +138,7 @@ def main(argv):
         # make dictionary of reads and windows and count total reads
         # read_dict: keys are chromosomes and values are a list of read positions
         # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
-        read_counts, window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts_pe(bam_iterator, genome, opt.window_size, opt.fragment_size, 1000000)
+        read_counts, window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts(bam_iterator, genome, opt.window_size, opt.fragment_size, 1000000)
                                                                              
     # evaluate first read in iterator to see if chip library is pair-ended or single-ended
     control_paired_end_bool = itertools.islice(control_bam_iterator,1).next().paired_end
@@ -157,7 +157,7 @@ def main(argv):
         # make dictionary of reads and windows and count total reads
         # read_dict: keys are chromosomes and values are a list of read positions
         # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
-        control_read_counts, control_window_counts_dict, control_normalized_window_array, control_total_reads = SICER_MS.get_window_counts_pe(control_bam_iterator, genome, opt.window_size, opt.fragment_size, 1000000)
+        control_read_counts, control_window_counts_dict, control_normalized_window_array, control_total_reads = SICER_MS.get_window_counts(control_bam_iterator, genome, opt.window_size, opt.fragment_size, 1000000)
 
 
 
