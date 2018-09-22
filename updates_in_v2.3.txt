@@ -6,7 +6,7 @@ pair-end: SICER_bam.py takes paired-end BAM file and makes intermediate BED file
 
 pair_to_frag: SICER_bam.py takes paired-end BAM file and makes intermediate BED file with start = fragment_start, end = fragment_end. SICER then proceeds as normal.
 
-refactor 
+refactor: see the functions get_window_counts and get_window_counts_pe below. Together they replace make_dict_of_reads_and_windows and get_window_counts_and_normalize.  
 
 
 
@@ -25,7 +25,9 @@ New functions in SICER_v2.3:
 
 
 ### The following two functions replace the two steps of using  make_dict_of_reads_and_windows 
-### followed by get_window_counts_and_normalize, since that procedure cannot easily incorporate pile-up counting.
+### followed by get_window_counts_and_normalize, since that procedure cannot easily incorporate pile-up counting since it relied 
+### on storing sorted coordinates of fragments in a dictionary then using bisection to find the number of read in a window. This 
+### assumes that each read is counted once in a window and not accross multiple windows, hence it does not work for pile-up.
 
 # SICER_MS.py, line 165
 get_window_counts
