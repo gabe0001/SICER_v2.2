@@ -201,7 +201,10 @@ def get_window_counts(iterator, genome_data, window_size, fragment_size, scaling
                 window_end = window_start + window_size 
                 window = HTSeq.GenomicInterval(chrom, window_start, window_end)
                 
-                normalized_window_array[window] = normalized_count
+                if window.end < genome_data[window.chrom] and window.start > 0: 
+                    normalized_window_array[window] = normalized_count
+                else:
+                    print  'Illegitimate read outside of chromosome is ignored:     ' + str(window)  
             window_counts_dict[chrom].sort()
             
             

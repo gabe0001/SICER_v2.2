@@ -102,24 +102,15 @@ def main(argv):
         # make dictionary of reads and windows and count total reads
         # read_dict: keys are chromosomes and values are a list of read positions
         # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
-        SICER_MS.paired_to_single_read(red_rem_bam_file_name)
-        paired_to_single_bed_file = red_rem_bam_file_name[:-4] + '_single' + '.bed'
-        bed_iterator = HTSeq.BED_Reader(paired_to_single_bed_file)
-        opt.fragment_size = 1
-        read_dict, window_dict, total_reads = SICER_MS.make_dict_of_reads_and_windows(bed_iterator, genome, opt.fragment_size, opt.window_size)
+        read_counts, window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts_pe(bam_iterator, genome, opt.window_size, 1000000)
+        
     elif not paired_end_bool:
         # make dictionary of reads and windows and count total reads
         # read_dict: keys are chromosomes and values are a list of read positions
         # window_dict: keys are chromosomes and values are a list of window start coordinates for windows containing reads
-        read_dict, window_dict, total_reads = SICER_MS.make_dict_of_reads_and_windows(bam_iterator, genome, opt.fragment_size, opt.window_size)
+        read_counts, window_counts_dict, normalized_window_array, total_reads = SICER_MS.get_window_counts(bam_iterator, genome, opt.window_size, opt.fragment_size, 1000000)
 
-    print "Count reads in windows... \n"
-    # calculate the number of island reads in all the windows comprising the islands
-    # calculate normalized read count for each window
-    # add the window's normalized read count to a genomic array (island_normalized_window_array)
-    # the island_normalized_window_array will be used to write a bedgraph file
-    window_counts_dict, normalized_window_array = SICER_MS.get_window_counts_and_normalize(window_dict, read_dict, genome,
-                                                                                  1000000, total_reads, opt.window_size)
+
     # write bedgraph file of normalized islands
     normalized_window_array.write_bedgraph_file(normalized_bedgraph_file_name)
 
